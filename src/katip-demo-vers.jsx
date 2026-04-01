@@ -63,17 +63,20 @@ function Dots() {
 }
 
 async function callAPI(system, messages) {
-  const res = await fetch("/api/anthropic/v1/messages", {
+  const res = await fetch("/api/anthropic", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
-      model: "claude-sonnet-4-20250514",
+      model: "claude-sonnet-4-5",
       max_tokens: 1500,
       system,
       tools: [{ type: "web_search_20250305", name: "web_search" }],
       messages,
     }),
   });
+  if (!res.ok && res.headers.get("content-type")?.includes("text/html")) {
+    throw new Error(`HTTP ${res.status} - API endpoint bulunamadı`);
+  }
   const data = await res.json();
   let text = "", sources = [];
   if (data.content) {
@@ -152,7 +155,7 @@ function ChatModule() {
       const r = await callAPI(SYS_CHAT, hist);
       setMsgs(p => [...p, { role: "assistant", content: r.text, sources: r.sources }]);
     } catch(e) {
-      setMsgs(p => [...p, { role: "assistant", content: "Bağlantı hatası." }]);
+      setMsgs(p => [...p, { role: "assistant", content: "Bağlantı hatası: " + e.message }]);
     }
     setLoading(false);
   }
@@ -252,7 +255,7 @@ Profesyonel dilekçe formatında, ilgili mevzuat maddeleri ve güncel Yargıtay/
       setResult(r.text);
       setSources(r.sources);
     } catch(e) {
-      setResult("Bağlantı hatası. Lütfen tekrar deneyin.");
+      setResult("Bağlantı hatası: " + e.message);
     }
     setLoading(false);
   }
@@ -413,7 +416,7 @@ function KararModule() {
       const r = await callAPI(SYS_KARAR, [{ role: "user", content: q }]);
       setResult(r.text);
       setSources(r.sources);
-    } catch(e) { setResult("Bağlantı hatası."); }
+    } catch(e) { setResult("Bağlantı hatası: " + e.message); }
     setLoading(false);
   }
 
